@@ -1,0 +1,28 @@
+# Project: Slanderify (Next.js 15 + Tailwind v4 + Supabase)
+## Code style
+- Use TypeScript strictly. Prefer `type` over `interface` unless extending.
+- Use functional React components; no default exports except Next page components.
+- Keep components small; move logic into `/src/lib/*` utilities.
+- Always validate inputs with Zod on API routes.
+- Use React Query for data fetching/mutations; prefer optimistic updates for votes.
+
+## Tailwind v4
+- Tokens live in `src/app/globals.css` using @theme. Use `bg-bg`, `text-foreground`, `bg-card`, `rounded-lg`.
+- No external CSS frameworks. Use shadcn-style primitives in `src/components/ui/*`.
+
+## Supabase
+- Use `@/lib/supabase/client` on the client, `@/lib/supabase/server` on the server.
+- Never expose `service_role` in client code.
+- Use RLS; rely on RPCs `submit_slander_name`, `cast_vote`.
+
+## Features
+- `/submit` form: slander name + real name + league. Dedup (case/spacing), show trigram “looks similar” warning.
+- Voting: up/down with idempotent upsert; optimistic UI.
+- Leaderboards: week/month/year, optional league filter.
+
+## Moderation
+- Allow football banter, disallow hate (race/ethnicity/nationality, etc.), threats, doxxing.
+- Check `blocklist` table before submit; show user-friendly errors.
+
+## Testing
+- Add lightweight smoke tests for utils and RPC handlers where feasible.
