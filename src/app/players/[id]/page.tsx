@@ -1,13 +1,15 @@
-// app/players/[id]/page.tsx (or wherever your route is)
 import { createSupabaseServer } from "@/lib/supabase/server";
 import SlanderCard from "@/components/SlanderCard";
+
+type RouteParams = Promise<{ id: string }>;
 
 export default async function PlayerPage({
   params,
 }: {
-  params: { id: string };
+  params: RouteParams;
 }) {
-  const playerId = Number(params.id);
+  const { id } = await params;
+  const playerId = Number(id);
   const supabase = await createSupabaseServer();
 
   // ----- Player info -----
@@ -25,9 +27,6 @@ export default async function PlayerPage({
   const playerTyped: PlayerRow = players[0] as PlayerRow;
 
   // ----- Slander names for this player -----
-  // NOTE: Using the submitted_by -> profiles(username) embed shorthand.
-  // Depending on your schema, PostgREST may return submitter as an array.
-  // We'll normalize it to a single object or null below.
   const { data: slanders, error: sErr } = await supabase
     .from("slander_names")
     .select("id, text, submitter:submitted_by(username)")
@@ -38,34 +37,27 @@ export default async function PlayerPage({
     return <main className="min-h-dvh grid place-items-center p-8">Error</main>;
   }
 
-  // Desired runtime type for rendering:
   type SlanderRow = {
     id: number;
     text: string;
     submitter: { username: string | null } | null;
   };
 
-  // Raw shape from Supabase can be: array/object/null; normalize it.
   type SlanderRowRaw = {
     id: number;
     text: string;
     submitter?: { username: string | null }[] | { username: string | null } | null;
   };
 
-  const slandersRaw = (slanders ?? []) as SlanderRowRaw[];
-  const slandersTyped: SlanderRow[] = slandersRaw.map((r) => {
-    const sub = r.submitter;
-    const normalized =
-      Array.isArray(sub) ? (sub[0] ?? null) :
-      sub ? sub :
-      null;
+  const normalizeOne = <T extends object>(val: T | T[] | null | undefined): T | null =>
+    Array.isArray(val) ? (val[0] ?? null) : val ?? null;
 
-    return {
-      id: r.id,
-      text: r.text,
-      submitter: normalized,
-    };
-  });
+  const slandersRaw = (slanders ?? []) as SlanderRowRaw[];
+  const slandersTyped: SlanderRow[] = slandersRaw.map((r) => ({
+    id: r.id,
+    text: r.text,
+    submitter: normalizeOne(r.submitter),
+  }));
 
   // ----- Votes (scores + my vote) -----
   type VoteRow = { slander_id: number; vote: -1 | 0 | 1 };
@@ -83,10 +75,8 @@ export default async function PlayerPage({
 
     scores = new Map<number, number>();
     const votesTyped = (votes ?? []) as VoteRow[];
-
     for (const v of votesTyped) {
-      const current = scores.get(v.slander_id) ?? 0;
-      scores.set(v.slander_id, current + v.vote);
+      scores.set(v.slander_id, (scores.get(v.slander_id) ?? 0) + v.vote);
     }
 
     const { data: me } = await supabase.auth.getUser();
