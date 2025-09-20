@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
@@ -8,22 +8,36 @@ export default function AuthCallbackClient() {
   const router = useRouter();
   const [status, setStatus] = useState<"exchanging" | "done" | "error">("exchanging");
 
+  const redirect = search.get("redirect") || "/";
+  const code = search.get("code");
+  const tokenHash = search.get("token_hash");
+
   useEffect(() => {
+    if (!code && !tokenHash) {
+      setStatus("error");
+      router.replace(`/signin?redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+
     const run = async () => {
       const supabase = createSupabaseBrowser();
       const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-      const dest = search.get("redirect") || "/";
+
       if (error) {
-        setStatus("error");
-        router.replace(`/signin?redirect=${encodeURIComponent(dest)}`);
-        return;
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+          setStatus("error");
+          router.replace(`/signin?redirect=${encodeURIComponent(redirect)}`);
+          return;
+        }
       }
+
       setStatus("done");
-      router.replace(dest);
+      router.replace(redirect);
+      router.refresh();
     };
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [code, tokenHash, redirect, router]);
 
   return (
     <main className="min-h-dvh grid place-items-center p-8">

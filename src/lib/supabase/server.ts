@@ -43,7 +43,14 @@ export async function createSupabaseServer() {
             setCookie(name, value, options);
           });
         } catch (err) {
-          console.warn("Supabase cookie set failed", err);
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.includes("Cookies can only be modified")) {
+            if (process.env.NODE_ENV !== "production") {
+              console.info("Supabase cookie update skipped: cookies() is read-only in this context");
+            }
+            return;
+          }
+          console.error("Supabase cookie set failed", err);
         }
       },
     },

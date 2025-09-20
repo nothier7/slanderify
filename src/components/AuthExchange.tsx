@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
@@ -8,20 +8,29 @@ export default function AuthExchange() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const code = search.get("code");
+  const tokenHash = search.get("token_hash");
+  const redirect = search.get("redirect");
+
   useEffect(() => {
-    const hasCode = !!(search.get("code") || search.get("token_hash"));
+    const hasCode = !!(code || tokenHash);
     if (!hasCode) return;
+    if (pathname?.startsWith("/auth/callback")) return;
 
     const run = async () => {
       const supabase = createSupabaseBrowser();
-      await supabase.auth.exchangeCodeForSession(window.location.href);
-      const dest = search.get("redirect") || pathname || "/";
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if (error) {
+        console.error("Supabase auth exchange failed", error);
+        return;
+      }
+      const dest = redirect || pathname || "/";
       router.replace(dest);
+      router.refresh();
     };
+
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, pathname]);
+  }, [code, tokenHash, redirect, pathname, router]);
 
   return null;
 }
-
