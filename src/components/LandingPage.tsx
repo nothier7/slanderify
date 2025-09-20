@@ -11,10 +11,10 @@ export default function LandingPage() {
             <div className="space-y-6">
               <div className="inline-block rounded-full border border-border/20 px-3 py-1 text-sm text-muted">Football banter, organized</div>
               <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-                Coin ruthless nicknames.<br />Vote the best to the top.
+                Submit a Slander name.<br />Vote the best to the top.
               </h1>
               <p className="text-muted/90 text-lg max-w-xl">
-                Slanderify lets you submit the sharpest slander names for players across top leagues, then upvote the crowd’s favorites. Weekly, monthly, and yearly leaderboards keep score.
+                Slanderify lets you submit the funniest slander names for players across top leagues, then upvote the crowd’s favorites. Weekly, monthly, and yearly leaderboards keep score.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <a href="/signin" className={cn(buttonVariants({ size: "lg" }))}>Sign in to get started</a>
@@ -74,7 +74,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-2xl md:text-3xl font-bold">FAQ</h2>
         <div className="mt-6 space-y-3">
-          <Faq q="Do I need an account?" a="Yes. Sign in with your email to submit or vote. The landing page is public so you can learn what it's about." />
+          <Faq q="Do I need an account?" a="Yes. Sign in with your email to submit or vote." />
           <Faq q="Are there content rules?" a="We block disallowed phrases and reserve moderation rights. Keep it football-focused and fun." />
           <Faq q="Which leagues are supported?" a="EPL, LaLiga, Serie A, Bundesliga, and Ligue 1." />
         </div>
