@@ -5,6 +5,7 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 import { LeaderboardQuerySchema } from "@/lib/validation";
 import { PAGE_SIZE } from "@/lib/constants";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function startDateForPeriod(period: "week" | "month" | "year") {
@@ -30,7 +31,6 @@ export async function GET(req: Request) {
 
     const sinceIso = startDateForPeriod(parsed.period);
 
-    // 1) Pull recent votes within the period
     const { data: votes, error: votesErr } = await supabase
       .from("votes")
       .select("slander_id, vote, created_at")
@@ -41,7 +41,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: votesErr.message }, { status: 400 });
     }
 
-    // 2) Aggregate score per slander_id
     type VoteRow = { slander_id: number; vote: -1 | 0 | 1; created_at: string };
     const scores = new Map<number, number>();
     const votesTyped = (votes ?? []) as VoteRow[];
@@ -50,7 +49,6 @@ export async function GET(req: Request) {
     }
     const ids = Array.from(scores.keys());
 
-    // 3) Fetch slanders union (recently created OR received votes)
     const baseSelect =
       "id, text, created_at, player:player_id(id, full_name, league), submitter:submitted_by(username)";
 
@@ -76,7 +74,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: sErr.message }, { status: 400 });
     }
 
-    // 4) Normalize shapes (player/submitter may be array/object/null)
     type League = "EPL" | "LaLiga" | "SerieA" | "Bundesliga" | "Ligue1";
 
     type PlayerObj = { id: number | null; full_name: string; league: League };
@@ -90,7 +87,6 @@ export async function GET(req: Request) {
       submitter: SubmitterObj | null;
     };
 
-    // Raw Supabase row could have arrays:
     type PlayerRaw =
       | { id: number | null; full_name: string; league: string }[]
       | { id: number | null; full_name: string; league: string }
@@ -118,7 +114,6 @@ export async function GET(req: Request) {
 
     const toLeague = (val: string | null | undefined): League | "" => {
       if (!val) return "";
-      // Trust only known leagues; fallback to "" (we'll filter later if needed)
       if (["EPL", "LaLiga", "SerieA", "Bundesliga", "Ligue1"].includes(val)) return val as League;
       return "" as const;
     };
@@ -138,7 +133,7 @@ export async function GET(req: Request) {
         ? {
             id: typeof playerOne.id === "number" ? playerOne.id : null,
             full_name: playerOne.full_name ?? "",
-            league: toLeague(playerOne.league) || ("LaLiga" as League), // pick a harmless default if you prefer
+            league: toLeague(playerOne.league) || ("LaLiga" as League),
           }
         : null;
 
@@ -155,7 +150,6 @@ export async function GET(req: Request) {
       };
     });
 
-    // 5) Current user votes for these slanders (for UI state)
     const slanderIds = slandersTyped.map((s) => s.id);
     const { data: myVotes } = slanderIds.length
       ? await supabase
@@ -171,7 +165,6 @@ export async function GET(req: Request) {
       myVoteMap.set(v.slander_id, v.vote);
     }
 
-    // 6) Build response items, filter/sort, paginate
     const items = slandersTyped
       .map((s) => ({
         id: s.id,
@@ -182,7 +175,7 @@ export async function GET(req: Request) {
               full_name: s.player.full_name ?? "",
               league: s.player.league as League,
             }
-          : { id: null, full_name: "", league: "LaLiga" as League }, // safe default
+          : { id: null, full_name: "", league: "LaLiga" as League },
         score: scores.get(s.id) ?? 0,
         created_at: s.created_at,
         submitter: { username: s.submitter?.username ?? null },

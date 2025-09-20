@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { SubmitSlanderSchema } from "@/lib/validation";
+
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -12,6 +14,7 @@ export async function POST(req: Request) {
     const supabase = await createSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { data, error } = await supabase.rpc("submit_slander_name", {
       in_player_full_name: parsed.realName,
       in_league: parsed.league,
