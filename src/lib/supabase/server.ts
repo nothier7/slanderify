@@ -1,4 +1,4 @@
-// src/lib/supabase/server.ts
+﻿// src/lib/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -26,12 +26,24 @@ export async function createSupabaseServer() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
+        const mutableCookieStore = cookieStore as unknown as {
+          set?: (name: string, value: string, options?: unknown) => void;
+        };
+        const setCookie = typeof mutableCookieStore.set === "function" ? mutableCookieStore.set.bind(cookieStore) : null;
+
+        if (!setCookie) {
+          if (process.env.NODE_ENV !== "production") {
+            console.info("Supabase cookie update skipped: cookies() is read-only in this context");
+          }
+          return;
+        }
+
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            setCookie(name, value, options);
           });
         } catch (err) {
-          console.warn("Supabase cookie set skipped (likely server component render)", err);
+          console.warn("Supabase cookie set failed", err);
         }
       },
     },

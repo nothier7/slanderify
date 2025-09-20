@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default function LandingPage() {
   return (
