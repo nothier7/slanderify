@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+      return NextResponse.json({ error: err.issues }, { status: 422 });
     }
     return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
