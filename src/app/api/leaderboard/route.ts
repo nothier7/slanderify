@@ -17,7 +17,7 @@ function startDateForPeriod(period: "week" | "month" | "year") {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const period = (url.searchParams.get("period") ?? "week") as any;
+    const period = url.searchParams.get("period") ?? "week";
     const league = url.searchParams.get("league") ?? undefined;
 
     const parsed = LeaderboardQuerySchema.parse({ period, league });
@@ -39,10 +39,12 @@ export async function GET(req: Request) {
     }
 
     // 2) Aggregate score per slander_id
+    type VoteRow = { slander_id: number; vote: -1 | 0 | 1; created_at: string };
     const scores = new Map<number, number>();
-    for (const v of votes ?? []) {
-      const id = (v as any).slander_id as number;
-      const val = (v as any).vote as number;
+    const votesTyped = (votes ?? []) as VoteRow[];
+    for (const v of votesTyped) {
+      const id = v.slander_id;
+      const val = v.vote;
       scores.set(id, (scores.get(id) ?? 0) + val);
     }
 
@@ -77,40 +79,49 @@ export async function GET(req: Request) {
 
     // 4) Merge, filter by league if provided, sort by score
     // 4) Current user votes for these slanders (for UI state)
-    const slanderIds = (slanders ?? []).map((s: any) => s.id as number);
+    type League = "EPL" | "LaLiga" | "SerieA" | "Bundesliga" | "Ligue1";
+    type SlanderRow = {
+      id: number;
+      text: string;
+      created_at: string;
+      player: { id: number | null; full_name: string; league: League } | null;
+      submitter: { username: string | null } | null;
+    };
+    const slandersTyped = (slanders ?? []) as SlanderRow[];
+    const slanderIds = slandersTyped.map((s) => s.id);
     const { data: myVotes } = slanderIds.length
       ? await supabase
           .from("votes")
           .select("slander_id, vote")
           .eq("user_id", user.id)
           .in("slander_id", slanderIds)
-      : { data: [] as any } as any;
+      : ({ data: [] as Array<{ slander_id: number; vote: -1 | 0 | 1 }> });
     const myVoteMap = new Map<number, number>();
-    for (const v of myVotes ?? []) {
-      // @ts-ignore
-      myVoteMap.set(v.slander_id as number, v.vote as number);
+    const myVotesTyped = (myVotes ?? []) as Array<{ slander_id: number; vote: -1 | 0 | 1 }>;
+    for (const v of myVotesTyped) {
+      myVoteMap.set(v.slander_id, v.vote);
     }
 
-    const items = (slanders ?? [])
-      .map((s: any) => ({
-        id: s.id as number,
+    const items = slandersTyped
+      .map((s) => ({
+        id: s.id,
         text: String(s.text),
         player: {
-          id: (s.player?.id ?? null) as number | null,
-          full_name: s.player?.full_name as string,
-          league: s.player?.league as string,
+          id: s.player?.id ?? null,
+          full_name: s.player?.full_name ?? "",
+          league: s.player?.league as League,
         },
         score: scores.get(s.id) ?? 0,
-        created_at: s.created_at as string,
-        submitter: { username: s.submitter?.username as string | null },
-        userVote: (myVoteMap.get(s.id) as 1 | -1 | undefined) ?? 0,
+        created_at: s.created_at,
+        submitter: { username: s.submitter?.username ?? null },
+        userVote: (myVoteMap.get(s.id) as 1 | -1 | 0 | undefined) ?? 0,
       }))
       .filter((row) => (parsed.league ? row.player.league === parsed.league : true))
       .sort((a, b) => (b.score - a.score) || (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       .slice(0, PAGE_SIZE);
 
     return NextResponse.json({ items });
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues }, { status: 422 });
     }

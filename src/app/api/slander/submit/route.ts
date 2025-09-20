@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ slanderId: data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues }, { status: 422 });
     }

@@ -17,7 +17,7 @@ export default async function PlayerPage({ params }: Params) {
   if (pErr || !players || players.length === 0) {
     return <main className="min-h-dvh grid place-items-center p-8">Not found</main>;
   }
-  const player = players[0];
+  // Use typed player object below
 
   // Slander names for this player
   const { data: slanders, error: sErr } = await supabase
@@ -30,7 +30,14 @@ export default async function PlayerPage({ params }: Params) {
     return <main className="min-h-dvh grid place-items-center p-8">Error</main>;
   }
 
-  const ids = (slanders ?? []).map((s) => s.id);
+  type PlayerRow = { id: number; full_name: string; league: string };
+  type SlanderRow = { id: number; text: string; submitter: { username: string | null } | null };
+  type VoteRow = { slander_id: number; vote: -1 | 0 | 1 };
+
+  const playerTyped = players[0] as PlayerRow;
+
+  const slandersTyped = (slanders ?? []) as SlanderRow[];
+  const ids = slandersTyped.map((s) => s.id);
   let scores = new Map<number, number>();
   let myVoteMap = new Map<number, number>();
   if (ids.length) {
@@ -40,9 +47,10 @@ export default async function PlayerPage({ params }: Params) {
       .in("slander_id", ids)
       .limit(10000);
     scores = new Map();
-    for (const v of votes ?? []) {
-      const id = (v as any).slander_id as number;
-      const val = (v as any).vote as number;
+    const votesTyped = (votes ?? []) as VoteRow[];
+    for (const v of votesTyped) {
+      const id = v.slander_id;
+      const val = v.vote;
       scores.set(id, (scores.get(id) ?? 0) + val);
     }
 
@@ -54,8 +62,9 @@ export default async function PlayerPage({ params }: Params) {
         .eq("user_id", me.user.id)
         .in("slander_id", ids);
       myVoteMap = new Map();
-      for (const v of myVotes ?? []) {
-        myVoteMap.set((v as any).slander_id as number, (v as any).vote as number);
+      const myVotesTyped = (myVotes ?? []) as VoteRow[];
+      for (const v of myVotesTyped) {
+        myVoteMap.set(v.slander_id, v.vote);
       }
     }
   }
@@ -63,23 +72,22 @@ export default async function PlayerPage({ params }: Params) {
   return (
     <main className="min-h-dvh p-6">
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-bold">{player.full_name} · {player.league}</h1>
+        <h1 className="text-2xl font-bold">{playerTyped.full_name} · {playerTyped.league}</h1>
         <div className="space-y-3">
-          {(slanders ?? []).map((s) => (
+          {slandersTyped.map((s) => (
             <SlanderCard
               key={s.id}
               id={s.id}
-              text={s.text as string}
-              player={{ id: player.id as number, full_name: player.full_name as string, league: player.league as string }}
+              text={s.text}
+              player={{ id: playerTyped.id, full_name: playerTyped.full_name, league: playerTyped.league }}
               score={scores.get(s.id) ?? 0}
-              submitter={{ username: (s as any).submitter?.username ?? null }}
-              userVote={(myVoteMap.get(s.id) as 1 | -1 | undefined) ?? 0}
+              submitter={{ username: s.submitter?.username ?? null }}
+              userVote={(myVoteMap.get(s.id) as 1 | -1 | 0 | undefined) ?? 0}
             />
           ))}
-          {(!slanders || slanders.length === 0) && <div className="text-muted">No slander yet.</div>}
+          {slandersTyped.length === 0 && <div className="text-muted">No slander yet.</div>}
         </div>
       </div>
     </main>
   );
 }
-

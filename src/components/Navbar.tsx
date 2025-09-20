@@ -3,15 +3,20 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/cn";
-import { buttonVariants } from "@/components/ui/button";
+// Avoid importing client-only buttonVariants in a Server Component
 
 export default async function Navbar() {
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   let username: string | null = null;
   if (user) {
-    const { data: prof } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
-    username = (prof as any)?.username ?? null;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+    const profile = prof as { username: string } | null;
+    username = profile?.username ?? null;
   }
 
   return (
@@ -26,15 +31,21 @@ export default async function Navbar() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
-              {!user ? (
-                <Link href="/signin" className={cn(buttonVariants({ size: "sm" }))}>Try it now</Link>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Leaderboard</Link>
-                  <Link href="/submit" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Submit</Link>
-                  <UserMenu username={username} />
-                </div>
-              )}
+              {(() => {
+                const base = "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-50 disabled:pointer-events-none";
+                const sm = "h-9 px-3";
+                const def = "bg-primary-500 text-bg hover:opacity-95";
+                const ghost = "bg-transparent text-foreground hover:bg-card";
+                return !user ? (
+                  <Link href="/signin" className={cn(base, sm, def)}>Try it now</Link>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Link href="/" className={cn(base, sm, ghost)}>Leaderboard</Link>
+                    <Link href="/submit" className={cn(base, sm, ghost)}>Submit</Link>
+                    <UserMenu username={username} />
+                  </div>
+                );
+              })()}
               <ThemeToggle />
             </div>
           </div>
