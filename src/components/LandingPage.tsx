@@ -26,16 +26,16 @@ export default function LandingPage() {
                 <div className="text-sm text-muted">Preview</div>
                 <div className="mt-2 space-y-3">
                   <div className="card p-3">
-                    <div className="text-sm text-muted">Kylian Mbappé · Ligue1</div>
-                    <div className="text-lg font-medium">KYew-lion M’bapp’d</div>
+                    <div className="text-sm text-muted">Randal Kolo Muani · EPL</div>
+                    <div className="text-lg font-medium">Rwanda Congo Mali</div>
                   </div>
                   <div className="card p-3">
-                    <div className="text-sm text-muted">Erling Haaland · EPL</div>
-                    <div className="text-lg font-medium">Tap-in Terminator</div>
+                    <div className="text-sm text-muted">Gyokeres · EPL</div>
+                    <div className="text-lg font-medium">Gyok Lesnar</div>
                   </div>
                   <div className="card p-3">
-                    <div className="text-sm text-muted">Jude Bellingham · LaLiga</div>
-                    <div className="text-lg font-medium">Belli-hype</div>
+                    <div className="text-sm text-muted">Florian Wirtz · LaLiga</div>
+                    <div className="text-lg font-medium">Lil Uzi Writz</div>
                   </div>
                 </div>
               </div>
