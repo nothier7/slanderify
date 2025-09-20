@@ -10,7 +10,7 @@ export const SubmitSlanderSchema = z.object({
 
 export const VoteSchema = z.object({
   slanderId: z.number().int().positive(),
-  vote: z.union([z.literal(1), z.literal(-1)]),
+  vote: z.union([z.literal(1), z.literal(0), z.literal(-1)]),
 });
 
 export const LeaderboardQuerySchema = z.object({

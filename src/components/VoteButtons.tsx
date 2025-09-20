@@ -13,13 +13,13 @@ export default function VoteButtons({ slanderId, initialScore = 0, initialUserVo
   const [userVote, setUserVote] = useState<1 | -1 | 0>(initialUserVote);
   const [pending, start] = useTransition();
 
-  async function cast(nextVote: 1 | -1) {
-    if (nextVote === userVote) return; // no-op to prevent double optimistic bumps
+  async function cast(next: 1 | -1) {
     const prev = userVote;
-    const delta = nextVote - prev; // -1->1 = +2, 0->1 = +1, 1->-1 = -2, 0->-1 = -1
+    const nextVote: 1 | -1 | 0 = next === prev ? 0 : next; // clicking again unvotes
+    const delta = nextVote - prev; // -1->1 = +2, 0->1 = +1, 1->-1 = -2, 0->-1 = -1, 1->0 = -1, -1->0 = +1
 
     start(async () => {
-      setUserVote(nextVote);
+      setUserVote(nextVote as 1 | -1 | 0);
       setScore((s) => s + delta);
       const res = await fetch("/api/slander/vote", {
         method: "POST",
